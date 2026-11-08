@@ -73,7 +73,7 @@ SELECT * FROM FITEM WHERE "FItem" = 316839
 ## Usage
 
 ```
-spv-cluster.py [--threshold 0.3] [--top-features 8] [--no-keywords] [--csv FILE] sqlfile
+spv-cluster.py [--threshold 0.3] [--top-features 8] [--no-keywords] [--min-execs 1] [--csv FILE] sqlfile
 ```
 
 | Option | Meaning |
@@ -81,6 +81,7 @@ spv-cluster.py [--threshold 0.3] [--top-features 8] [--no-keywords] [--csv FILE]
 | `--threshold` | Maximum cosine distance for merging groups. Default 0.3 (similarity of at least 0.7). See below. |
 | `--top-features` | Number of highest weighted words shown per group. Default 8. |
 | `--no-keywords` | Ignore SQL keywords and common functions, so groups reflect tables and columns only. |
+| `--min-execs N` | Only report groups with at least N total executions. Default 1 (all groups). Grouping and the CSV are not affected, and group numbers stay the same. |
 | `--csv FILE` | Also write one row per input line: `group,executions,sql`. |
 
 Example output:
@@ -89,12 +90,16 @@ Example output:
 Statements read: 5691  Executions: 5691  Unique after normalization: 962
 Dictionary size: 2261  Matrix shape: (962, 2261)
 Groups found: 611 (threshold 0.3)
+Minimum executions shown: 1 (0 groups with 0 executions (0.0%) not shown)
 
 === Group 1: 303 executions (5.3%), 1 distinct
     Features : langcd, preflanguage, patient, description, and, select, where, from
     Example  : SELECT L."Description" FROM LANGCD L, PATIENT P WHERE P."Patient" = 109341 AND P."PrefLanguage" = L."LangCd"
 ```
 
+- **Minimum executions shown**: the `--min-execs` setting, and how many groups
+  and executions fell below it. With `--min-execs 50` on the sample file, 21
+  groups are shown and 590 groups holding 63.9% of executions are not.
 - **executions**: total executions of all statements in the group, and the
   percentage of all executions in the file.
 - **distinct**: number of distinct statement patterns (after normalization)

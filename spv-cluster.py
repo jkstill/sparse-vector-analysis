@@ -31,6 +31,8 @@ parser.add_argument('--threshold', type=float, default=0.3,
 parser.add_argument('--top-features', type=int, default=8, help='features shown per group. default: %(default)s')
 parser.add_argument('--no-keywords', action='store_true',
                     help='ignore SQL keywords so groups reflect tables/columns only')
+parser.add_argument('--min-execs', type=int, default=1,
+                    help='only report groups with at least this many executions (CSV is unaffected). default: %(default)s')
 parser.add_argument('--csv', help='optional output file: one row per statement with its group id')
 args = parser.parse_args()
 
@@ -99,14 +101,20 @@ labels = AgglomerativeClustering(
 weights = np.array([counts[u] for u in unique])
 total = weights.sum()
 groups = sorted(set(labels), key=lambda g: -weights[labels == g].sum())
-print(f"Groups found: {len(groups)} (threshold {args.threshold})\n")
+print(f"Groups found: {len(groups)} (threshold {args.threshold})")
+hidden = [g for g in groups if weights[labels == g].sum() < args.min_execs]
+hidden_execs = sum(weights[labels == g].sum() for g in hidden)
+print(f"Minimum executions shown: {args.min_execs} ({len(hidden)} groups with "
+      f"{hidden_execs} executions ({100 * hidden_execs / total:.1f}%) not shown)\n")
 
 for rank, g in enumerate(groups, 1):
     idx = np.where(labels == g)[0]
+    n_exec = weights[idx].sum()
+    if n_exec < args.min_execs:
+        break  # groups are sorted by executions, so all remaining groups are smaller
     centroid = np.asarray(X[idx].mean(axis=0)).ravel()
     rep = idx[np.argmax(X[idx] @ centroid)]  # statement closest to the group centroid
     top = [feature_names[i] for i in np.argsort(centroid)[::-1][:args.top_features] if centroid[i] > 0]
-    n_exec = weights[idx].sum()
     print(f"=== Group {rank}: {n_exec} executions ({100 * n_exec / total:.1f}%), {len(idx)} distinct")
     print(f"    Features : {', '.join(top)}")
     print(f"    Example  : {example[unique[rep]][:300]}\n")
