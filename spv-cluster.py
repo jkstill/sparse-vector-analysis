@@ -5,6 +5,7 @@ Group similar SQL statements from a file to characterize a workload.
 
 Input: one SQL statement per line (trailing whitespace is ignored), optionally
 prefixed with an execution count: <execution_count>:<sql statement>
+(a tab may be used instead of the colon, as produced by mrskew).
 Lines without a prefix count as 1 execution.
 
 Each statement is normalized (string/numeric literals and bind variables removed,
@@ -24,7 +25,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_distances
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument('sqlfile', help='file with one SQL statement per line, optionally <count>:<sql>')
+parser.add_argument('sqlfile', help='file with one SQL statement per line, optionally <count>:<sql> or <count><TAB><sql>')
 parser.add_argument('--threshold', type=float, default=0.3,
                     help='max cosine distance for merging groups (0.3 = similarity >= 0.7). default: %(default)s')
 parser.add_argument('--top-features', type=int, default=8, help='features shown per group. default: %(default)s')
@@ -67,7 +68,7 @@ with open(args.sqlfile, encoding='utf-8', errors='replace') as f:
         line = line.strip()
         if not line:
             continue
-        m = re.match(r'(\d+):(.*)', line)  # SQL never starts with a digit, so this is unambiguous
+        m = re.match(r'(\d+)[:\t](.*)', line)  # SQL never starts with a digit, so this is unambiguous
         execs.append(int(m.group(1)) if m else 1)
         raw.append(m.group(2).strip() if m else line)
 
